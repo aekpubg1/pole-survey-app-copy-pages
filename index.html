@@ -4678,7 +4678,28 @@ $('runCables').addEventListener('click',function(e){
   var pz=e.target.closest&&e.target.closest('[data-pez]');
   if(runPE&&d.pex===undefined&&pz){ var qi=+pz.dataset.pez; if(runPE.pts[qi]){ map.panTo(toLL(runPE.pts[qi])); runPEPopup(qi); } return; }
   if(runPEBarClick(d)) return;
-  if(d.ev){ var ec=runCable(+d.c); ec.ev=d.ev; runSyncGrp(ec); renderRun(); }
+  if(d.ev){
+    var ec=runCable(+d.c); if(!ec) return;
+    // Selecting "end at this pole" immediately saves the selected stop. A destination
+    // must already be selected; this prevents accidentally ending a cable at its origin.
+    if(d.ev==='end'){
+      var draftStops=(run&&run.pend&&Array.isArray(run.pend.items))?run.pend.items:[];
+      var targetTag=String(($('tag')&&$('tag').value)||'').trim();
+      var targetLat=parseFloat($('lat')&&$('lat').value), targetLon=parseFloat($('lon')&&$('lon').value);
+      var origin=runRouteOrigin();
+      var targetChosen=draftStops.length>0 || !!(targetTag&&isFinite(targetLat)&&isFinite(targetLon)&&
+        (!origin||targetTag.toUpperCase()!==String(origin.tag||'').toUpperCase()));
+      if(!targetChosen){
+        toast('เลือกเสาปลายทางก่อน แล้วกด "สิ้นสุดที่เสานี้" อีกครั้ง — ระบบจะบันทึกและหยุดสายให้อัตโนมัติ',true);
+        return;
+      }
+    }
+    ec.ev=d.ev; runSyncGrp(ec); renderRun();
+    if(d.ev==='end'){
+      toast('กำลังบันทึกช่วงและสิ้นสุดสายที่เสาปลายทางที่เลือกโดยอัตโนมัติ');
+      runCommit(false);
+    }
+  }
   else if(d.del){ run.cables=run.cables.filter(function(c){return c.no!==+d.del&&c.hd!==+d.del}); renderRun(); }
   else if(d.ph){ runPhotoTarget=+d.ph; camPick(runPhotoFiles,$('runFile')); }
   else if(d.pd){ var a=d.pd.split(':'); runCable(+a[0]).photos.splice(+a[1],1); renderRun(); }
