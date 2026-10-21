@@ -840,8 +840,9 @@ function paintPoles(){
   if(!showPoles){ setPoleHint('ปิดการแสดงสัญลักษณ์เสา (เปิดได้ที่ปุ่ม "ชั้นข้อมูล")'); return; }
   if(!poles.length){ setPoleHint('ยังไม่มีข้อมูลเสาในฐานข้อมูล Poles'); return; }
   var b=map.getBounds(); if(!b) return;
+  // Leaflet's native LatLngBounds returns LatLng values with numeric .lat/.lng.
   var sw=b.getSouthWest(), ne=b.getNorthEast();
-  var s0=sw.lat(), n0=ne.lat(), w0=sw.lng(), e0=ne.lng();
+  var s0=sw.lat, n0=ne.lat, w0=sw.lng, e0=ne.lng;
   // ขยายขอบเขตค้นหาให้ตรงกับ canvas overscan 25% ต่อด้าน
   var dLat=(n0-s0)*0.25, dLng=(e0-w0)*0.25;
   var found=findPolesInBounds(s0-dLat,n0+dLat,w0-dLng,e0+dLng,s0,n0,w0,e0);
@@ -3295,7 +3296,7 @@ function draftData(){
     cur:{tags:curRoute.tags.slice(),pts:curRoute.pts.slice()},
     sketch:skPts(), sketchMode:sketchMode,
     form:{name:$('rpName').value,owner:$('rpOwner').value,type:$('rpType').value,core:$('rpCore').value}, area:null};
-  if(map&&map.getCenter()){ var c=map.getCenter(); o.view={lat:c.lat(),lng:c.lng(),z:map.getZoom()}; }
+  if(map){ var c=map.getCenter(); o.view={lat:c.lat,lng:c.lng,z:map.getZoom()}; }
   if(((bulkSel&&Object.keys(bulkSel).length)>0)||(selStage==='edit'&&draft&&draft.length)){
     var tg=function(path){ return path.map(function(q){return q.tag}); };
     o.area={stage:selStage,draft:(draft||[]).map(tg),init:(draftInit||[]).map(tg),bulk:Object.keys(bulkSel||{}),meta:draftMeta||{}};

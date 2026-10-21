@@ -153,8 +153,10 @@
     global.__poleLeafletMap = map;
     eventApi(map);
     map.getDiv = function () { return map.getContainer(); };
-    map.getCenter = function () { var p = L.Map.prototype.getCenter.call(map); return new LatLng(p.lat, p.lng); };
-    map.getBounds = function () { return new LatLngBoundsFromLeaflet(L.Map.prototype.getBounds.call(map)); };
+    // Keep Leaflet's native getCenter() and getBounds() methods intact.
+    // Leaflet internals expect L.LatLng objects with numeric .lat/.lng fields;
+    // the old Google Maps-style wrappers returned .lat()/.lng() functions and
+    // caused "Invalid LatLng object" while the tile layer initialized.
     map.getZoom = function () { return L.Map.prototype.getZoom.call(map); };
     map.setCenter = function (p) { var ll = latLng(p); L.Map.prototype.setView.call(map, [ll.lat(), ll.lng()], map.getZoom(), { animate: false }); };
     map.panTo = function (p) { var ll = latLng(p); L.Map.prototype.panTo.call(map, [ll.lat(), ll.lng()], { animate: false }); };
