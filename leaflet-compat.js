@@ -186,6 +186,7 @@
     map.setMapTypeId('roadmap');
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       minZoom: 3, maxZoom: 19, maxNativeZoom: 19, updateWhenIdle: true, keepBuffer: 2,
+      referrerPolicy: 'strict-origin-when-cross-origin',
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>'
     }).addTo(map);
     map.on('move zoom resize viewreset', function () { map.fire('idle'); });

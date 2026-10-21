@@ -1,5 +1,5 @@
 /* Static shell cache only. API, OpenStreetMap tiles and photo links are not precached. */
-const CACHE_NAME = 'pole-survey-app-copy-shell-v2';
+const CACHE_NAME = 'pole-survey-app-copy-shell-v3';
 const SHELL = [
   './', './index.html', './config.js', './offline-bridge.js', './leaflet-compat.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png'
