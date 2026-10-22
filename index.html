@@ -198,12 +198,21 @@
   .fab{position:relative}
   .ufrow{border:1px solid var(--line);border-radius:8px;margin:6px 0;background:#fcfbff}
   .ufrow.on{border-color:var(--brand);background:#f6f2ff}
-  .ufh{display:flex;gap:8px;align-items:center;padding:7px 9px;cursor:pointer}
-  .ufh small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
-  .uf-row-kml{flex:0 0 auto;min-width:46px;padding:6px 8px;border:1px solid #4b2a86;border-radius:8px;background:#f7f3ff;color:#4b2a86;font-size:12px;font-weight:700;line-height:1.2}
+  .ufh{display:flex;gap:7px;align-items:center;padding:7px 8px;cursor:pointer;min-width:0}
+  .ufh small{display:block;color:var(--muted);font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+  .uf-summary{flex:1;min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .uf-title-line{display:flex;align-items:center;gap:4px 5px;flex-wrap:wrap;min-width:0;max-width:100%;line-height:1.35}
+  .uf-title-line b{flex:0 0 auto}
+  .uf-owner{flex:0 1 auto;min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .ufst{display:inline-flex;align-items:center;flex:0 1 auto;max-width:100%;font-size:11px;line-height:1.25;background:#e8e4f2;color:var(--brand);border-radius:99px;padding:2px 6px;margin:0;font-weight:500;white-space:normal;overflow-wrap:anywhere}
+  .uf-row-check{width:18px!important;max-width:18px!important;height:18px;flex:0 0 18px;padding:0;margin:0;accent-color:var(--brand);cursor:pointer}
+  .uf-selection-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:7px 0 3px}
+  .uf-select-all{display:inline-flex;align-items:center;gap:6px;margin:0;color:var(--ink);font-size:12.5px;line-height:1.3;min-width:0}
+  .uf-select-all input{width:18px!important;max-width:18px!important;height:18px;flex:0 0 18px;padding:0;margin:0;accent-color:var(--brand)}
+  #ufSelectAllCount{font-weight:700}
+  .uf-row-kml{flex:0 0 auto;min-width:44px;padding:6px 7px;border:1px solid #4b2a86;border-radius:8px;background:#f7f3ff;color:#4b2a86;font-size:12px;font-weight:700;line-height:1.2}
   .uf-row-kml:active{background:#e8ddff}
-  @media (max-width:400px){.ufh{gap:5px;padding:7px 6px}.uf-row-kml{min-width:42px;padding:6px 5px;font-size:11.5px}}
-  .ufst{font-size:11px;background:#e8e4f2;color:var(--brand);border-radius:99px;padding:0 6px;margin-left:4px;font-weight:500}
+  @media (max-width:400px){.ufh{gap:5px;padding:7px 5px}.uf-row-kml{min-width:40px;padding:6px 4px;font-size:11px}.uf-row-check{width:17px!important;max-width:17px!important;height:17px;flex-basis:17px}.uf-select-all{font-size:12px}}
   .ufd{padding:0 9px 9px}
   .ufchain{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
   .ufp-wrap{border-bottom:1px solid #f0edf7}
@@ -468,6 +477,8 @@
     <div class="seg" style="margin:6px 0"><button type="button" data-uf="src" data-s="saved" class="on">สำรวจแล้ว (ฐานข้อมูล)</button><button type="button" data-uf="src" data-s="draft">ลากในโหมดพาดสาย</button></div>
     <input id="ufQ" placeholder="ค้นหา: ชื่อเส้นทาง / เจ้าของ / TAG เสา" autocomplete="off">
     <div class="rp-actions"><button type="button" class="ghost" data-uf="reload">โหลดข้อมูลใหม่</button></div>
+    <div class="uf-selection-controls"><label class="uf-select-all"><input type="checkbox" id="ufSelectAll"> เลือกทั้งหมดที่พบ (<span id="ufSelectAllCount">0</span>)</label></div>
+    <div class="rp-actions"><button type="button" class="ghost" id="ufExportSelected" data-uf="export-selected" disabled>ส่งออกที่เลือกเป็น KML (0)</button></div>
     <div class="rp-actions"><button type="button" class="ghost" id="ufExportAll" data-uf="exportall" title="ส่งออกทุกเส้นในหมวดที่เลือกอยู่ด้านบน">ส่งออกทั้งหมดเป็น KML</button></div>
     <div id="ufList"></div>
   </div>
@@ -1207,7 +1218,7 @@ function importKml(file){
 }
 /* ---------- เส้นทางที่สำรวจแล้ว: ซิงก์แบบส่งเฉพาะที่เปลี่ยน (ทุก ~6 วินาที + ทันทีหลังบันทึก/สลับกลับมาที่แท็บ) ---------- */
 var BUILD='2026-10-13-edit-route-photos-routehit-v3', surv={edit:false,map:{},pl:{},idx:null,since:0,on:true,busy:false,again:false,err:'',t:'',warned:false}, SURV_MS=6000;
-var uf={open:false,q:'',src:'saved',exp:'',limit:40,hi:null,mk:null,all:[],focus:'',tap:[],photoCache:{},photoOpenKey:'',photoOpenIndex:-1,photoLoadingKey:'',photoErrors:{},photoCounts:{},photoCountLoaded:{},photoCountLoading:{}};
+var uf={open:false,q:'',src:'saved',exp:'',limit:40,hi:null,mk:null,all:[],focus:'',tap:[],selected:{},photoCache:{},photoOpenKey:'',photoOpenIndex:-1,photoLoadingKey:'',photoErrors:{},photoCounts:{},photoCountLoaded:{},photoCountLoading:{}};
 function survList(){ return Object.keys(surv.map).map(function(k){ return surv.map[k]; }); }
 function survClear(){ Object.keys(surv.pl).forEach(function(k){ surv.pl[k].setMap(null); }); surv.pl={}; }
 function poleTagKey(t){ return String(t==null?'':t).trim().toUpperCase(); }
@@ -1877,8 +1888,8 @@ function ufEnded(it){ return !!it.draft||!!it.ended||!!it.endTag||it.status==='�
 function ufRow(it){
   var col=ownerColor(it.owner), open=uf.exp===it.key, n=it.tags.length;
   var end=ufEnded(it)?(it.endTag||it.tags[n-1]||''):'(ยังไม่สิ้นสุด)';
-  return '<div class="ufrow'+(open?' on':'')+'"><div class="ufh" data-uf="tog" data-k="'+esc(it.key)+'"><i class="sw" style="background:'+col+'"></i><div style="flex:1;min-width:0"><b>สาย '+it.no+'</b> '+esc(it.owner||'ไม่ระบุเจ้าของ')+
-    (it.status&&!it.draft?'<span class="ufst">'+esc(it.status)+'</span>':'')+'<small>'+esc(it.name||'')+'</small><small>'+esc(it.startTag||it.tags[0]||'')+' → '+esc(end)+' · '+n+' เสา · '+(+it.km||0).toFixed(2)+' กม.</small></div><button type="button" class="uf-row-kml" data-uf="export-row" data-k="'+esc(it.key)+'" title="ส่งออกเฉพาะเส้นทางนี้เป็นไฟล์ KML">KML</button><span>'+(open?'▲':'▼')+'</span></div>'+
+  return '<div class="ufrow'+(open?' on':'')+'"><div class="ufh" data-uf="tog" data-k="'+esc(it.key)+'"><i class="sw" style="background:'+col+'"></i><input type="checkbox" class="uf-row-check" data-uf="select-kml" data-k="'+esc(it.key)+'" aria-label="เลือกเส้นทางนี้เพื่อส่งออก KML"'+(uf.selected[it.key]?' checked':'')+'><div class="uf-summary"><div class="uf-title-line"><b>สาย '+it.no+'</b><span class="uf-owner">'+esc(it.owner||'ไม่ระบุเจ้าของ')+'</span>'+
+    (it.status&&!it.draft?'<span class="ufst">'+esc(it.status)+'</span>':'')+'</div><small>'+esc(it.name||'')+'</small><small>'+esc(it.startTag||it.tags[0]||'')+' → '+esc(end)+' · '+n+' เสา · '+(+it.km||0).toFixed(2)+' กม.</small></div><button type="button" class="uf-row-kml" data-uf="export-row" data-k="'+esc(it.key)+'" title="ส่งออกเฉพาะเส้นทางนี้เป็นไฟล์ KML">KML</button><span>'+(open?'▲':'▼')+'</span></div>'+
     (open?ufDetail(it):'')+'</div>';
 }
 function ufPhotoKey(routeKey,tag){ return String(routeKey||'')+'|'+String(tag||'').trim().toUpperCase(); }
@@ -2119,6 +2130,17 @@ function ufRender(){
   $('ufCount').textContent=all.length+' สาย'+(uf.src==='saved'&&surv.t?' · ซิงก์ '+surv.t:'');
   var exportAllBtn=$('ufExportAll');
   if(exportAllBtn){ exportAllBtn.textContent='ส่งออกทั้งหมดเป็น KML ('+sourceCount+' สาย)'; exportAllBtn.disabled=!sourceCount; }
+  var selectedItems=ufBase(uf.src).filter(function(it){ return !!uf.selected[it.key]; });
+  var exportSelectedBtn=$('ufExportSelected');
+  if(exportSelectedBtn){ exportSelectedBtn.textContent='ส่งออกที่เลือกเป็น KML ('+selectedItems.length+')'; exportSelectedBtn.disabled=!selectedItems.length; }
+  var selectAllBox=$('ufSelectAll'), selectAllCount=$('ufSelectAllCount');
+  if(selectAllCount) selectAllCount.textContent=all.length;
+  if(selectAllBox){
+    var selectedShown=all.filter(function(it){ return !!uf.selected[it.key]; }).length;
+    selectAllBox.checked=all.length>0&&selectedShown===all.length;
+    selectAllBox.indeterminate=selectedShown>0&&selectedShown<all.length;
+    selectAllBox.disabled=!all.length;
+  }
   var shown=all.slice(0,uf.limit);
   box.innerHTML=shown.length?(shown.map(ufRow).join('')+(all.length>shown.length?'<button type="button" class="ghost" data-uf="more" style="width:100%">แสดงเพิ่ม ('+(all.length-shown.length)+')</button>':'')):
     '<div class="hint">'+(uf.src==='draft'?'ยังไม่มีเส้นที่กด "เสร็จเส้นนี้" ในโหมดพาดสายบนเสา':(uf.q?'ไม่พบสายที่ตรงกับคำค้น':'ยังไม่มีสายที่สำรวจแล้ว'))+'</div>';
@@ -2145,7 +2167,9 @@ function ufExportKml(items, allMode){
   });
   if(!list.length) return toast('ไม่พบเส้นทางที่มีพิกัดอย่างน้อย 2 จุดสำหรับสร้าง KML',true);
   var base;
-  if(allMode){
+  if(allMode==='selected'){
+    base='คลี่สาย_'+(uf.src==='saved'?'สำรวจแล้ว':'โหมดพาดสาย')+'_ที่เลือก_'+list.length+'เส้น';
+  }else if(allMode){
     base='คลี่สาย_'+(uf.src==='saved'?'สำรวจแล้ว':'โหมดพาดสาย')+'_ทั้งหมด';
   }else{
     var it=items[0];
@@ -2224,16 +2248,28 @@ $('btnFold').onclick=function(){
 };
 var ufTimer=null;
 $('ufQ').addEventListener('input',function(){ clearTimeout(ufTimer); var v=this.value; ufTimer=setTimeout(function(){ uf.q=v; uf.limit=40; uf.exp=''; ufClearHi(); ufRender(); },220); });
+$('ufSelectAll').addEventListener('change',function(){
+  var matches=ufItems();
+  matches.forEach(function(it){ if(this.checked) uf.selected[it.key]=true; else delete uf.selected[it.key]; },this);
+  ufRender();
+});
+$('unfoldPanel').addEventListener('change',function(e){
+  var t=e.target.closest('[data-uf="select-kml"]'); if(!t) return;
+  if(t.checked) uf.selected[t.dataset.k]=true; else delete uf.selected[t.dataset.k];
+  ufRender();
+});
 $('unfoldPanel').addEventListener('click',function(e){
   var t=e.target.closest('[data-uf]'); if(!t) return; var a=t.dataset.uf;
+  if(a==='select-kml') return;
   if(a==='close') ufClose();
   else if(a==='hide') ufHide();
-  else if(a==='src'){ uf.src=t.dataset.s; uf.exp=''; uf.limit=40; ufClearHi(); ufRender(); }
+  else if(a==='src'){ uf.src=t.dataset.s; uf.exp=''; uf.selected={}; uf.limit=40; ufClearHi(); ufRender(); }
   else if(a==='more'){ uf.limit+=40; ufRender(); }
   else if(a==='reload'){ uf.photoCounts={}; uf.photoCountLoaded={}; uf.photoCountLoading={}; survReloadAll(); toast('กำลังโหลดเส้นทางและจำนวนรูปถ่ายใหม่…'); }
+  else if(a==='export-selected'){ var selected=ufBase(uf.src).filter(function(x){ return !!uf.selected[x.key]; }); if(selected.length) ufExportKml(selected,'selected'); else toast('กรุณาเลือกเส้นทางอย่างน้อย 1 เส้นก่อนส่งออก',true); }
   else if(a==='exportall'){ ufExportKml(ufBase(uf.src),true); }
   else if(a==='export-row'){ var ex=ufItems().filter(function(x){ return x.key===t.dataset.k; })[0]; if(ex) ufExportKml([ex],false); else toast('ไม่พบเส้นทางที่เลือก กรุณาโหลดข้อมูลใหม่',true); }
-  else if(a==='tog'){ var k=t.dataset.k; uf.focus=''; uf.exp=(uf.exp===k?'':k); ufClearHi(); ufRender(); if(uf.exp) ufShow(true); }
+  else if(a==='tog'){ var k=t.dataset.k; uf.focus=''; uf.exp=(uf.exp===k?'':uf.exp); ufClearHi(); ufRender(); if(uf.exp) ufShow(true); }
   else if(a==='photos'){
     var photoIt=ufCur(); if(!photoIt) return;
     var photoRow=t.closest('.ufp'), photoIndex=Number(photoRow&&photoRow.dataset.i), photoTag=(photoIt.tags||[])[photoIndex]; if(!photoTag) return;
