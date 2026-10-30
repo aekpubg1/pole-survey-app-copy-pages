@@ -1,5 +1,5 @@
 /* Static shell cache only. API, OpenStreetMap tiles and photo links are not precached. */
-const CACHE_NAME = 'pole-survey-app-copy-shell-v4';
+const CACHE_NAME = 'pole-survey-app-copy-shell-v5';
 const SHELL = [
   './', './index.html', './config.js', './offline-bridge.js', './leaflet-compat.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png'
@@ -14,7 +14,6 @@ const STATIC_CDN_HOSTS = new Set(['unpkg.com', 'cdnjs.cloudflare.com']);
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then(async (cache) => {
     await cache.addAll(SHELL);
-    // Cache version-pinned libraries for the app shell; never prefetch or cache OSM map tiles here.
     await Promise.all(STATIC_CDN_ASSETS.map((url) => cache.add(url).catch((error) => {
       console.warn('Static library precache skipped:', url, error && error.message);
     })));

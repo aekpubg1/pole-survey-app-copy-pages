@@ -198,9 +198,15 @@
   .fab{position:relative}
   .ufrow{border:1px solid var(--line);border-radius:8px;margin:6px 0;background:#fcfbff}
   .ufrow.on{border-color:var(--brand);background:#f6f2ff}
-  .ufh{display:flex;gap:7px;align-items:center;padding:7px 8px;cursor:pointer;min-width:0}
+  /* แยกพื้นที่แตะ Checkbox / รายละเอียด / KML ไม่ให้คลิกซ้อนกันบนมือถือ */
+  .ufh{display:flex;gap:7px;align-items:center;padding:7px 8px;min-width:0}
   .ufh small{display:block;color:var(--muted);font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+  .uf-summary-toggle{display:flex;align-items:center;gap:7px;flex:1 1 auto;min-width:0;max-width:100%;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink);text-align:left;box-shadow:none;cursor:pointer;touch-action:manipulation}
+  .uf-summary-toggle:active{background:transparent}
+  .uf-summary-toggle:focus-visible{outline:2px solid #b9a3e8;outline-offset:2px}
   .uf-summary{flex:1;min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .uf-disclosure{flex:0 0 26px;width:26px;height:34px;padding:0;border:1px solid #ded7e9;border-radius:7px;background:#fff;color:#4b2a86;font-size:18px;line-height:1;display:grid;place-items:center;box-shadow:none;touch-action:manipulation}
+  .uf-disclosure:active{background:#f1eaff}
   .uf-title-line{display:flex;align-items:center;gap:4px 5px;flex-wrap:wrap;min-width:0;max-width:100%;line-height:1.35}
   .uf-title-line b{flex:0 0 auto}
   .uf-owner{flex:0 1 auto;min-width:0;max-width:100%;overflow-wrap:anywhere}
@@ -212,7 +218,7 @@
   #ufSelectAllCount{font-weight:700}
   .uf-row-kml{flex:0 0 auto;min-width:44px;padding:6px 7px;border:1px solid #4b2a86;border-radius:8px;background:#f7f3ff;color:#4b2a86;font-size:12px;font-weight:700;line-height:1.2}
   .uf-row-kml:active{background:#e8ddff}
-  @media (max-width:400px){.ufh{gap:5px;padding:7px 5px}.uf-row-kml{min-width:40px;padding:6px 4px;font-size:11px}.uf-row-check{width:17px!important;max-width:17px!important;height:17px;flex-basis:17px}.uf-select-all{font-size:12px}}
+  @media (max-width:400px){.ufh{gap:5px;padding:7px 5px}.uf-summary-toggle{gap:5px}.uf-disclosure{flex-basis:23px;width:23px;height:32px}.uf-row-kml{min-width:40px;padding:6px 4px;font-size:11px}.uf-row-check{width:17px!important;max-width:17px!important;height:17px;flex-basis:17px}.uf-select-all{font-size:12px}}
   .ufd{padding:0 9px 9px}
   .ufchain{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
   .ufp-wrap{border-bottom:1px solid #f0edf7}
@@ -1217,7 +1223,7 @@ function importKml(file){
   r.readAsArrayBuffer(file);
 }
 /* ---------- เส้นทางที่สำรวจแล้ว: ซิงก์แบบส่งเฉพาะที่เปลี่ยน (ทุก ~6 วินาที + ทันทีหลังบันทึก/สลับกลับมาที่แท็บ) ---------- */
-var BUILD='2026-10-13-edit-route-photos-routehit-v3', surv={edit:false,map:{},pl:{},idx:null,since:0,on:true,busy:false,again:false,err:'',t:'',warned:false}, SURV_MS=6000;
+var BUILD='2026-10-30-unfold-panel-click-fix-v1', surv={edit:false,map:{},pl:{},idx:null,since:0,on:true,busy:false,again:false,err:'',t:'',warned:false}, SURV_MS=6000;
 var uf={open:false,q:'',src:'saved',exp:'',limit:40,hi:null,mk:null,all:[],focus:'',tap:[],selected:{},photoCache:{},photoOpenKey:'',photoOpenIndex:-1,photoLoadingKey:'',photoErrors:{},photoCounts:{},photoCountLoaded:{},photoCountLoading:{}};
 function survList(){ return Object.keys(surv.map).map(function(k){ return surv.map[k]; }); }
 function survClear(){ Object.keys(surv.pl).forEach(function(k){ surv.pl[k].setMap(null); }); surv.pl={}; }
@@ -1888,8 +1894,8 @@ function ufEnded(it){ return !!it.draft||!!it.ended||!!it.endTag||it.status==='�
 function ufRow(it){
   var col=ownerColor(it.owner), open=uf.exp===it.key, n=it.tags.length;
   var end=ufEnded(it)?(it.endTag||it.tags[n-1]||''):'(ยังไม่สิ้นสุด)';
-  return '<div class="ufrow'+(open?' on':'')+'"><div class="ufh" data-uf="tog" data-k="'+esc(it.key)+'"><i class="sw" style="background:'+col+'"></i><input type="checkbox" class="uf-row-check" data-uf="select-kml" data-k="'+esc(it.key)+'" aria-label="เลือกเส้นทางนี้เพื่อส่งออก KML"'+(uf.selected[it.key]?' checked':'')+'><div class="uf-summary"><div class="uf-title-line"><b>สาย '+it.no+'</b><span class="uf-owner">'+esc(it.owner||'ไม่ระบุเจ้าของ')+'</span>'+
-    (it.status&&!it.draft?'<span class="ufst">'+esc(it.status)+'</span>':'')+'</div><small>'+esc(it.name||'')+'</small><small>'+esc(it.startTag||it.tags[0]||'')+' → '+esc(end)+' · '+n+' เสา · '+(+it.km||0).toFixed(2)+' กม.</small></div><button type="button" class="uf-row-kml" data-uf="export-row" data-k="'+esc(it.key)+'" title="ส่งออกเฉพาะเส้นทางนี้เป็นไฟล์ KML">KML</button><span>'+(open?'▲':'▼')+'</span></div>'+
+  return '<div class="ufrow'+(open?' on':'')+'"><div class="ufh"><i class="sw" style="background:'+col+'"></i><input type="checkbox" class="uf-row-check" data-uf="select-kml" data-k="'+esc(it.key)+'" aria-label="เลือกเส้นทางนี้เพื่อส่งออก KML"'+(uf.selected[it.key]?' checked':'')+'><button type="button" class="uf-summary-toggle" data-uf="tog" data-k="'+esc(it.key)+'" aria-expanded="'+(open?'true':'false')+'"><span class="uf-summary"><span class="uf-title-line"><b>สาย '+it.no+'</b><span class="uf-owner">'+esc(it.owner||'ไม่ระบุเจ้าของ')+'</span>'+
+    (it.status&&!it.draft?'<span class="ufst">'+esc(it.status)+'</span>':'')+'</span><small>'+esc(it.name||'')+'</small><small>'+esc(it.startTag||it.tags[0]||'')+' → '+esc(end)+' · '+n+' เสา · '+(+it.km||0).toFixed(2)+' กม.</small></span><span class="uf-disclosure" aria-hidden="true">'+(open?'▲':'▼')+'</span></button><button type="button" class="uf-row-kml" data-uf="export-row" data-k="'+esc(it.key)+'" title="ส่งออกเฉพาะเส้นทางนี้เป็นไฟล์ KML">KML</button></div>'+
     (open?ufDetail(it):'')+'</div>';
 }
 function ufPhotoKey(routeKey,tag){ return String(routeKey||'')+'|'+String(tag||'').trim().toUpperCase(); }
@@ -2254,13 +2260,21 @@ $('ufSelectAll').addEventListener('change',function(){
   ufRender();
 });
 $('unfoldPanel').addEventListener('change',function(e){
-  var t=e.target.closest('[data-uf="select-kml"]'); if(!t) return;
-  if(t.checked) uf.selected[t.dataset.k]=true; else delete uf.selected[t.dataset.k];
+  var t=e.target;
+  if(!t || !t.classList || !t.classList.contains('uf-row-check')) return;
+  var key=t.getAttribute('data-k'); if(!key) return;
+  if(t.checked) uf.selected[key]=true; else delete uf.selected[key];
   ufRender();
 });
 $('unfoldPanel').addEventListener('click',function(e){
-  var t=e.target.closest('[data-uf]'); if(!t) return; var a=t.dataset.uf;
-  if(a==='select-kml') return;
+  var node=e.target, t=null;
+  while(node && node!==this){
+    if(node.getAttribute && node.getAttribute('data-uf')){ t=node; break; }
+    node=node.parentNode;
+  }
+  if(!t) return; var a=t.getAttribute('data-uf');
+  if(a==='select-kml') { e.stopPropagation(); return; }
+  if(a==='export-row' || a==='export-selected' || a==='exportall') { e.preventDefault(); e.stopPropagation(); }
   if(a==='close') ufClose();
   else if(a==='hide') ufHide();
   else if(a==='src'){ uf.src=t.dataset.s; uf.exp=''; uf.selected={}; uf.limit=40; ufClearHi(); ufRender(); }
@@ -2269,7 +2283,7 @@ $('unfoldPanel').addEventListener('click',function(e){
   else if(a==='export-selected'){ var selected=ufBase(uf.src).filter(function(x){ return !!uf.selected[x.key]; }); if(selected.length) ufExportKml(selected,'selected'); else toast('กรุณาเลือกเส้นทางอย่างน้อย 1 เส้นก่อนส่งออก',true); }
   else if(a==='exportall'){ ufExportKml(ufBase(uf.src),true); }
   else if(a==='export-row'){ var ex=ufItems().filter(function(x){ return x.key===t.dataset.k; })[0]; if(ex) ufExportKml([ex],false); else toast('ไม่พบเส้นทางที่เลือก กรุณาโหลดข้อมูลใหม่',true); }
-  else if(a==='tog'){ var k=t.dataset.k; uf.focus=''; uf.exp=(uf.exp===k?'':uf.exp); ufClearHi(); ufRender(); if(uf.exp) ufShow(true); }
+  else if(a==='tog'){ var k=t.getAttribute('data-k'); if(!k) return; uf.focus=''; uf.exp=(uf.exp===k?'':k); ufClearHi(); ufRender(); if(uf.exp) ufShow(true); }
   else if(a==='photos'){
     var photoIt=ufCur(); if(!photoIt) return;
     var photoRow=t.closest('.ufp'), photoIndex=Number(photoRow&&photoRow.dataset.i), photoTag=(photoIt.tags||[])[photoIndex]; if(!photoTag) return;
