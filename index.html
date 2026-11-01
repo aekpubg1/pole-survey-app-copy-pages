@@ -5227,7 +5227,7 @@ function camStart(id){
     return camPhotoCaps(CAM.tr).then(function(pcr){
       CAM.ic=pcr&&pcr.ic; CAM.pc=pcr&&pcr.pc;
       var dm=camDims(CAM.tr,pcr), s=CAM.tr.getSettings?CAM.tr.getSettings():{};
-      $('camInfo').textContent=(portrait?'ภาพแนวตั้ง 1536×2048':'ภาพแนวนอน 2048×1536')+' · JPEG คุณภาพสูง · ถ่ายภาพนิ่งเต็มความละเอียดก่อนย่อ'+(dm.still?'':' · เฟรมวิดีโอสำรอง '+(s.width||'?')+'×'+(s.height||'?'));
+      $('camInfo').textContent=(portrait?'ภาพแนวตั้ง 1536×2048':'ภาพแนวนอน 2048×1536')+' · JPEG คุณภาพสูง · ถ่ายภาพนิ่งเต็มความละเอียดก่อนย่อ'+(dm.still?'':' · เฟรมวิดีโอสำรอง '+(s.width||'?')+'×'+(s.height||'?'))+' · ถ่ายได้หลายรูปต่อเนื่อง แล้วกด "เสร็จ" เพื่อบันทึกทั้งหมด';
       camMsg('');
     });
   });
@@ -5240,57 +5240,61 @@ function camFile(blob,orientation){
   f.camOrientation=orientation||(window.innerHeight>=window.innerWidth?'portrait':'landscape');
   return f;
 }
-function camCount(){ $('camDone').textContent=CAM.shots.length?'เสร็จ ('+CAM.shots.length+')':'เสร็จ'; }
+function camCount(){
+  var done=$('camDone');
+  done.textContent=CAM.shots.length?'เสร็จ ('+CAM.shots.length+' รูป)':'เสร็จ';
+  done.disabled=!!CAM.busy;
+  done.title=CAM.shots.length?'กดเพื่อบันทึกรูปทั้งหมด '+CAM.shots.length+' รูป':'ถ่ายได้หลายรูป แล้วกดเสร็จเพื่อบันทึกทั้งหมด';
+}
 function camShot(){
   if(!CAM.tr||CAM.busy) return;
   var shotOrientation=window.innerHeight>=window.innerWidth?'portrait':'landscape';
-  CAM.busy=true; $('camShot').disabled=true;
+  CAM.busy=true; $('camShot').disabled=true; camCount();
   function done(blob){
-    CAM.busy=false; $('camShot').disabled=false;
+    CAM.busy=false; $('camShot').disabled=false; camCount();
     if(!blob||!blob.size) return toast('ถ่ายรูปไม่สำเร็จ ลองอีกครั้ง',true);
     CAM.shots.push(camFile(blob,shotOrientation)); camCount();
     var fl=$('camFlash'); fl.style.opacity='.85'; setTimeout(function(){ fl.style.opacity='0'; },90);
   }
-  function grab(){   /* สำรอง (เช่น iOS Safari ไม่มี ImageCapture): เก็บเฟรมวิดีโอที่ความละเอียดสูงสุดที่เปิดได้ */
-    var v=$('camVideo'), w=v.videoWidth, h=v.videoHeight; if(!w||!h) return done(null);
-    var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(v,0,0,w,h);
+  function grab(){
+    /* Fallback: capture the current video frame and keep the camera open for the next shot. */
+    var v=$('camVideo'), w=v.videoWidth, h=v.videoHeight;
+    if(!w||!h) return done(null);
+    var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+    cv.getContext('2d').drawImage(v,0,0,w,h);
     cv.toBlob(function(b){ cv.width=1; cv.height=1; done(b); },'image/jpeg',0.95);
   }
   if(CAM.ic&&CAM.ic.takePhoto){
     var o={}, pc=CAM.pc;
     if(pc&&pc.imageWidth&&pc.imageHeight){
       var mw=Number(pc.imageWidth.max)||0, mh=Number(pc.imageHeight.max)||0;
-      if(mw>0&&mh>0){
-        /* ถ่ายภาพนิ่งด้วยขนาดสูงสุดที่กล้องรองรับก่อน แล้วค่อยปรับไฟล์มาตรฐานตอนอัปโหลด */
-        o.imageWidth=mw; o.imageHeight=mh;
-      }
+      if(mw>0&&mh>0){ o.imageWidth=mw; o.imageHeight=mh; }
     }
-    CAM.ic.takePhoto(o).then(done,function(){ CAM.ic.takePhoto().then(done,function(){
-      // ถ่ายภาพนิ่งไม่ได้ ให้ส่งต่อกล้องระบบแทนการบันทึกเฟรมวิดีโอความละเอียดต่ำ
-      var fb=CAM.fb, cb=CAM.cb, shots=CAM.shots.slice();
-      camStopStream(); $('camModal').style.display='none'; CAM.open=false; CAM.shots=[]; camCount();
-      if(shots.length&&cb) cb(shots);
-      if(fb) setTimeout(function(){ fb.click(); },0);
-    }); });
-  } else grab();
+    CAM.ic.takePhoto(o).then(done,function(){
+      CAM.ic.takePhoto().then(done,function(){ grab(); });
+    });
+  } else {
+    grab();
+  }
 }
 function camFinish(){
+  if(CAM.busy){ toast('กำลังประมวลผลภาพ กรุณารอสักครู่แล้วกดเสร็จอีกครั้ง'); return; }
   camStopStream(); $('camModal').style.display='none'; CAM.open=false;
-  var files=CAM.shots; CAM.shots=[]; camCount();
-  if(files.length&&CAM.cb) CAM.cb(files);
+  var files=CAM.shots.slice(); CAM.shots=[]; CAM.busy=false; camCount();
+  if(files.length&&CAM.cb){
+    CAM.cb(files);
+    toast('กำลังส่งรูปทั้งหมด '+files.length+' รูปไปบันทึก…');
+  }
 }
 function camPick(cb,fallbackInput){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){ fallbackInput.click(); return; }
-  // เบราว์เซอร์ที่ไม่มี ImageCapture (โดยเฉพาะ iPhone/iPad Safari) มักให้ได้เพียงเฟรมวิดีโอความละเอียดต่ำ
-  // ใช้กล้องระบบโดยตรงแทน เพื่อรับไฟล์ภาพนิ่งเต็มความละเอียดจากเซนเซอร์ ไม่ใช้ภาพจับจากวิดีโอ
-  if(!window.ImageCapture || !ImageCapture.prototype || typeof ImageCapture.prototype.takePhoto!=='function'){
-    fallbackInput.click(); return;
-  }
-  CAM.cb=cb; CAM.fb=fallbackInput; CAM.shots=[]; CAM.open=true; camCount();
+  /* Keep the in-app camera open. If ImageCapture is unavailable, camShot uses a video-frame fallback. */
+  CAM.cb=cb; CAM.fb=fallbackInput; CAM.shots=[]; CAM.busy=false; CAM.open=true; camCount();
+  $('camShot').disabled=false;
   $('camModal').style.display='flex'; $('camInfo').textContent='';
   camInit().catch(function(e){
     var n=(e&&e.name)||'';
-    camMsg(n==='NotAllowedError'||n==='SecurityError'?'เบราว์เซอร์ไม่อนุญาตให้ใช้กล้องในหน้านี้ — กด "กล้องระบบ" หรือ "แกลเลอรี" แทน':'เปิดกล้องไม่ได้ ('+(n||'error')+') — กด "กล้องระบบ" แทน');
+    camMsg(n==='NotAllowedError'||n==='SecurityError'?'เบราว์เซอร์ไม่อนุญาตให้ใช้กล้องในหน้านี้ — กด "กล้องระบบ" หรือ "แกลเลอรี" แทน':'เปิดกล้องไม่ได้ ('+(n||'error')+') — กด "กล้องระบบ" หรือ "แกลเลอรี" แทน');
   });
 }
 $('camShot').onclick=camShot;
