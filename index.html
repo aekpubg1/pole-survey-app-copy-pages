@@ -5287,9 +5287,9 @@ function camFinish(){
   }
 }
 function camPick(cb,fallbackInput){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){ CAM.cb=cb; CAM.fb=fallbackInput; CAM.shots=[]; camNativeBatchStart(cb,fallbackInput,[]); return; }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){ CAM.cb=cb; CAM.fb=fallbackInput; CAM.shots=[]; fallbackInput.click(); return; }
   /* Keep the in-app camera open. If ImageCapture is unavailable, camShot uses a video-frame fallback. */
-  CAM.cb=cb; CAM.fb=fallbackInput; CAM.shots=[]; CAM.busy=false; CAM.nativeMode=false; CAM.nativeQueue=[]; CAM.nativeInput=null; CAM.nativeWaiting=false; CAM.open=true; camCount();
+  CAM.cb=cb; CAM.fb=fallbackInput; CAM.shots=[]; CAM.busy=false; CAM.open=true; camCount();
   $('camShot').disabled=false;
   $('camModal').style.display='flex'; $('camInfo').textContent='';
   camInit().catch(function(e){
@@ -5302,83 +5302,25 @@ $('camDone').onclick=camFinish;
 $('camSel').onchange=function(){ camStart(this.value).catch(function(){ camMsg('สลับกล้องไม่ได้'); }); };
 $('camGal').onclick=function(){ $('galFile').click(); };
 $('galFile').onchange=function(){ [].slice.call(this.files).forEach(function(f){ CAM.shots.push(f); }); this.value=''; camCount(); };
-/* CAM_NATIVE_BATCH_QUEUE_V1
-   Android capture=environment ส่งไฟล์กลับเว็บได้ครั้งละภาพต่อการเปิดกล้องหนึ่งรอบ
-   จึงเก็บภาพจากแต่ละรอบไว้ก่อน และส่งเข้า callback เดิมเมื่อกดบันทึกทั้งหมดเท่านั้น
-*/
-function camNativeBatchElement(){
-  var el=document.getElementById('camNativeBatchQueue');
-  if(!el){ el=document.createElement('div'); el.id='camNativeBatchQueue'; document.body.appendChild(el); }
-  return el;
-}
-function camNativeBatchShow(){
-  if(!CAM.nativeMode||!CAM.nativeQueue.length) return;
-  var el=camNativeBatchElement(), n=CAM.nativeQueue.length;
-  el.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);padding:18px;box-sizing:border-box;';
-  el.innerHTML='<div style="width:100%;max-width:420px;background:#171717;color:#fff;border:1px solid #555;border-radius:18px;padding:22px;box-sizing:border-box;text-align:center;font-family:inherit">'+
-    '<div style="font-size:21px;font-weight:700;margin-bottom:10px">เก็บรูปจากกล้องระบบแล้ว</div>'+
-    '<div style="font-size:18px;margin-bottom:9px">มีรูปอยู่ในชุดนี้ <b>'+n+' รูป</b></div>'+
-    '<div style="font-size:13px;line-height:1.6;color:#ddd;margin-bottom:18px">กล้อง Android ส่งกลับครั้งละ 1 ภาพต่อการเปิดกล้อง 1 รอบ หากต้องการเพิ่มรูป ให้กดถ่ายเพิ่ม รูปทั้งหมดจะถูกส่งเข้าระบบเมื่อกดบันทึกทั้งหมด</div>'+
-    '<button type="button" id="camNativeBatchAgain" style="width:100%;padding:14px 10px;margin:4px 0;border:0;border-radius:12px;background:#2563eb;color:#fff;font-size:17px;font-weight:700">ถ่ายเพิ่มด้วยกล้องระบบ</button>'+
-    '<button type="button" id="camNativeBatchFinish" style="width:100%;padding:14px 10px;margin:4px 0;border:0;border-radius:12px;background:#16a34a;color:#fff;font-size:17px;font-weight:700">บันทึกรูปทั้งหมด ('+n+' รูป)</button>'+
-    '<button type="button" id="camNativeBatchCancel" style="width:100%;padding:11px 10px;margin:4px 0;border:1px solid #777;border-radius:12px;background:transparent;color:#fff;font-size:15px">ยกเลิกชุดรูปนี้</button></div>';
-  el.querySelector('#camNativeBatchAgain').onclick=function(){
-    if(!CAM.nativeMode||!CAM.nativeInput) return;
-    CAM.nativeWaiting=true; el.style.display='none';
-    try{ CAM.nativeInput.value=''; CAM.nativeInput.click(); }
-    catch(e){ CAM.nativeWaiting=false; camNativeBatchShow(); toast('เปิดกล้องระบบไม่ได้ กรุณาลองอีกครั้ง',true); }
+/* กล้องระบบใช้กล้องภายในหน้าเว็บชุดเดียวกับโหมด Timestamp
+   ถ่ายต่อเนื่องด้วย ImageCapture/เฟรมกล้อง และสะสมใน CAM.shots
+   จากนั้นกดปุ่ม "เสร็จ" เพียงครั้งเดียวเพื่อส่งรูปทั้งหมดเข้า callback เดิม */
+var camNativeButton = $('camNative');
+if (camNativeButton) {
+  camNativeButton.textContent = 'ถ่ายต่อเนื่อง';
+  camNativeButton.title = 'ถ่ายภาพต่อเนื่องด้วยกล้องในหน้าแอป ไม่เปิดแอปกล้องภายนอก';
+  camNativeButton.onclick = function(){
+    if (CAM.open && CAM.tr) {
+      camShot();
+      return;
+    }
+    if (CAM.fb) {
+      CAM.fb.click();
+      return;
+    }
+    toast('กล้องยังไม่พร้อม กรุณาปิดแล้วเปิดหน้ากล้องใหม่', true);
   };
-  el.querySelector('#camNativeBatchFinish').onclick=camNativeBatchFinish;
-  el.querySelector('#camNativeBatchCancel').onclick=function(){
-    if(!window.confirm('ต้องการยกเลิกรูปทั้งหมด '+CAM.nativeQueue.length+' รูปใช่หรือไม่?')) return;
-    CAM.nativeQueue=[]; CAM.nativeMode=false; CAM.nativeWaiting=false; CAM.nativeInput=null;
-    el.style.display='none'; toast('ยกเลิกชุดรูปจากกล้องระบบแล้ว');
-  };
-}
-function camNativeBatchStart(cb,input,existing){
-  if(!input) return toast('ไม่พบช่องรับภาพจากกล้องระบบ กรุณาปิดแล้วเปิดกล้องใหม่',true);
-  CAM.cb=cb||CAM.cb; CAM.fb=input; CAM.nativeInput=input;
-  CAM.nativeQueue=(existing||[]).slice(); CAM.nativeMode=true; CAM.nativeWaiting=true;
-  try{ input.value=''; input.click(); }
-  catch(e){ CAM.nativeWaiting=false; camNativeBatchShow(); toast('เปิดกล้องระบบไม่ได้ กรุณาลองอีกครั้ง',true); }
-}
-function camNativeBatchFinish(){
-  if(!CAM.nativeMode||!CAM.nativeQueue.length) return toast('ยังไม่มีรูปในชุดนี้',true);
-  var files=CAM.nativeQueue.slice(), cb=CAM.cb, el=camNativeBatchElement();
-  CAM.nativeQueue=[]; CAM.nativeMode=false; CAM.nativeWaiting=false; CAM.nativeInput=null;
-  el.style.display='none';
-  if(cb){ cb(files); toast('กำลังส่งรูปทั้งหมด '+files.length+' รูปไปบันทึก…'); }
-}
-/* ดัก change ก่อน handler เดิมของ file/runFile/sedPhotoFile เพื่อไม่ให้บันทึกแยกทีละภาพ */
-document.addEventListener('change',function(e){
-  if(!CAM.nativeMode||e.target!==CAM.nativeInput) return;
-  var files=[].slice.call(e.target.files||[]);
-  try{ e.target.value=''; }catch(err){}
-  CAM.nativeWaiting=false;
-  if(files.length){
-    CAM.nativeQueue=CAM.nativeQueue.concat(files);
-    e.stopImmediatePropagation();
-    camNativeBatchShow();
-  }else{
-    e.stopImmediatePropagation();
-    if(CAM.nativeQueue.length) camNativeBatchShow();
-    else { CAM.nativeMode=false; CAM.nativeInput=null; toast('ยกเลิกการถ่ายภาพจากกล้องระบบ'); }
-  }
-},true);
-function camNativeBatchResume(){
-  if(CAM.nativeMode&&CAM.nativeWaiting&&CAM.nativeQueue.length){
-    setTimeout(function(){ if(CAM.nativeMode&&CAM.nativeWaiting) camNativeBatchShow(); },350);
-  }
-}
-window.addEventListener('focus',camNativeBatchResume);
-document.addEventListener('visibilitychange',function(){ if(!document.hidden) camNativeBatchResume(); });
-$('camNative').onclick=function(){    /* เปิดกล้อง Android และพักรูปไว้จนกว่าจะกดบันทึกทั้งหมด */
-  var fb=CAM.fb, shots=CAM.shots.slice();
-  camStopStream(); $('camModal').style.display='none'; CAM.open=false; CAM.shots=[]; camCount();
-  camNativeBatchStart(CAM.cb,fb,shots);
-};
-
-/* ===== เชื่อม Timestamp Camera ภายนอก (Android) =====
+}/* ===== เชื่อม Timestamp Camera ภายนอก (Android) =====
    เนื่องจากหน้าเว็บไม่สามารถรับไฟล์กลับจากแอปอื่นโดยตรง จึงให้เปิด Timestamp Camera,
    กลับมาเลือกภาพจากแกลเลอรี แล้วค่อยนำภาพเข้าสู่ขั้นตอนอัปโหลดเดิมของระบบ */
 var EXT_CAM_SESSION_KEY='surveyExternalTimestampCameraV1';
